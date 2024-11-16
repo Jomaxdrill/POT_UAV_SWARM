@@ -20,3 +20,9 @@ def distance(node_a, node_b):
 	substract_vector = get_vector(node_a, node_b)
 	#? Euclidean distance squared has given better performance
 	return round(math.sqrt(substract_vector[0]**2 + substract_vector[1]**2),2)
+
+#TODO: get the function about this
+#*Returns the shortest distance between a given robot location and an obstacle(a 2d surface)
+def shortest_distance(node_a, nodes):
+    short_distance = None
+    return short_distance

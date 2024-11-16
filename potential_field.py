@@ -1,3 +1,4 @@
+import math
 from utilities import distance,get_vector
 KA= 14 #attractive gain coefficient
 KR = 500 #repulsive gain coefficient
@@ -31,8 +32,6 @@ def total_pot_field(pos_uav,pos_goal,obstacles, other_uavs):
 	for drone in other_uavs:
 		rep_field.append(repulsive_field(pos_uav, drone))
 	return attractive_field(pos_uav, pos_goal) + sum(rep_field)
-
-
 
 def drone_control():
 #* new position = iteration of total_potential field until all pos_uav are equal to pos_goal
