@@ -1,10 +1,14 @@
 import math
+import numpy as np
 def get_vector(node_a, node_b):
     return tuple(x - y for x, y in zip(node_a, node_b))
 #TODO: get the function of angle between vectors
 def get_angle(node_a, node_b):
-    #? Use dot product??
-    return
+    #? Use dot product to get the angle
+    dot_vectors= np.dot(node_a, node_b)
+    magnitude_a = np.linalg.norm(node_a)
+    magnitude_b = np.linalg.norm(node_b)
+    return math.acos(dot_vectors / (magnitude_a * magnitude_b))
 def distance(node_a, node_b):
 	"""
 	Returns the Euclidean distance between two nodes.
@@ -19,10 +23,14 @@ def distance(node_a, node_b):
 	"""
 	substract_vector = get_vector(node_a, node_b)
 	#? Euclidean distance squared has given better performance
-	return round(math.sqrt(substract_vector[0]**2 + substract_vector[1]**2),2)
+	return np.linalg.norm(substract_vector)
+	# return round(math.sqrt(substract_vector[0]**2 + substract_vector[1]**2),2)
 
-#TODO: get the function about this
-#*Returns the shortest distance between a given robot location and an obstacle(a 2d surface)
-def shortest_distance(node_a, nodes):
-    short_distance = None
-    return short_distance
+def rotation_vector_by(angle):
+	if angle < 0:
+		angle = angle % 360
+	angle_rad = np.radians(angle)
+	return np.array([[round(np.cos(angle_rad), 2),
+						round(-np.sin(angle_rad), 2)],
+							[round(np.sin(angle_rad), 2),
+								round(np.cos(angle_rad), 2)]])
