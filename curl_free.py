@@ -16,5 +16,5 @@ def rot_matrix_field(vel_vector,pos_vector, obs_pos):
 	angle_obs = get_angle(get_vector(pos_vector, obs_pos),hor_vector) #angle of relative position vector from UAV and obstacle
 	angle_diff = angle_path - angle_obs
 	if angle_diff >= 0:
-		return [[0, 1],[-1, 0]] #clockwise direction
-	return [[0, -1],[1, 0]] #counter clockwise direction
+		return np.array([[0, 1],[-1, 0]]) #clockwise direction
+	return np.array([[0, -1],[1, 0]]) #counter clockwise direction

@@ -1,10 +1,10 @@
 import numpy as np
 from utilities import distance,get_vector
 from curl_free import rot_matrix_field
-KF = 500 #formation gain coefficient
-KR = 1000 #repulsive gain coefficient
-DO = 100 #limit distance of the potential field influence
-MIU = 1200 #espace force component, #* in theory every UAV should have one unique
+KF = 10 #formation gain coefficient
+KR = 2e15 #repulsive gain coefficient
+DO = 0 #limit distance of the potential field influence
+MIU = 10#espace force component, #* in theory every UAV should have one unique
 #*in theory every UAV should have one unique or maybe not think, this is my desire reference
 #*this will be determined by how I want to set my final geometry
 # def repulsive_field_fixed_obstacle(pos_uav, obs, short_dist):
@@ -16,6 +16,8 @@ MIU = 1200 #espace force component, #* in theory every UAV should have one uniqu
 #*THIS RETURNS A VECTOR
 def gradient_force_fixed_obstacle(pos_uav, obs, shor_dist, total_DO):
 	force_factor = KR * ((1/shor_dist)-(1/total_DO))*(1/shor_dist**2)
+	#the distance vector to the obstacle - the position vector of the obstacle
+	# unitary_vector = get_vector(get_vector(pos_uav,obs['center']), obs['center'])/shor_dist
 	unitary_vector = get_vector(pos_uav, obs['center'])/shor_dist
 	return  force_factor * unitary_vector
 
@@ -45,22 +47,32 @@ def gradient_formation(curr_uav, uavs):
 		diff_vector = np.array(get_vector(get_vector(uavs[drone]['position'],  uavs[curr_uav]['position']),
 								uavs[curr_uav]['deltas'][drone]))
 		vector_sum += diff_vector
-	return KF * vector_sum
+	formation_vector = KF * vector_sum
+	print(f'formation_vector is {formation_vector}')
+	return formation_vector
 
-def hybrid_algorithm(curr_uav, uavs, obs):
+def hybrid_algorithm(curr_uav, uavs, obs, border):
 	#assume this security radius that is supposed only for the drone generates from obstacle
-	real_DO = DO + obs['radius']
+	#real_DO = obs['radius']*0.20 + obs['radius'] #Asume danger zone equal to 20% of the radius of the obstacle
+	real_DO = border + obs['radius']
 	shortest_dist_to_obs = distance(uavs[curr_uav]['position'], obs['center'])
-	if shortest_dist_to_obs < real_DO and shortest_dist_to_obs > 0:
+	print(f'danger zone distance is  {real_DO}')
+	print(f'shortest distance for {curr_uav}  is {shortest_dist_to_obs}')
+	if shortest_dist_to_obs <= real_DO and shortest_dist_to_obs > 0:
+		print('I entered repulsive')
 		# compute the gradient of the repulsive field
 		repulsive_force = gradient_force_fixed_obstacle(uavs[curr_uav]['position'], obs, shortest_dist_to_obs, real_DO)
 		# compute the escape force
 		escaping_force = escape_component(curr_uav, uavs)
+		# print(f'repulsive force of obstacle is for drone {curr_uav} {repulsive_force}')
+		# print(f'escaping force of obstacle is for drone {curr_uav} {escaping_force}')
 		# compute the new position
 		#TODO: check correct dimension of repulsive force to multiply
 		#the control action is and this should be probably be multiplied by a step size
 		#numerical integration will be applied as model is single integrator
-		return (repulsive_force @ rot_matrix_field(uavs[curr_uav]['direction'],
+		vector_curl = (repulsive_force @ rot_matrix_field(uavs[curr_uav]['direction'],
                                             uavs[curr_uav]['position'],
                                             obs['center']) ) + escaping_force
+		print(f'vector_curl repulsive for drone {curr_uav} is {vector_curl}')
+		return vector_curl
 	return gradient_formation(curr_uav, uavs)
