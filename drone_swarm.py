@@ -2,6 +2,7 @@
 from utilities import get_vector,distance, rotation_vector_by, interpolate_line, generate_unique_pairs
 from hybrid import hybrid_algorithm
 from potential_field import pot_field
+from curl_free import curl_free_vel_field
 from plotting import plot_trajectories, plot_pos_vels, plot_short_distance
 import numpy as np
 import math
@@ -274,7 +275,7 @@ def collision(node, new_node, inter_points):
 if __name__ == "__main__":
 	create_state_formation()
 	#control_law(hybrid_algorithm, states_drones)
-	control_law(pot_field, states_drones)
+	control_law(curl_free_vel_field, states_drones)
 	for drone in states_drones:
 		print(f"\nDrone {drone}: Position: {states_drones[drone]['position']},\
 		Direction: {states_drones[drone]['direction']}\n\
