@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from itertools import combinations
 def get_vector(node_a, node_b):
 	return tuple(x - y for x, y in zip(node_a, node_b))
 #TODO: get the function of angle between vectors
@@ -64,3 +65,7 @@ def interpolate_line(start_point, end_point, inter_points=30):
 		y_point = start_point[1] + t_idx * (end_point[1] - start_point[1])  # Linear interpolation for y coordinate
 		points.append((x_point, y_point))
 	return points
+
+def generate_unique_pairs(uavs):
+	num_entities = range(0,uavs)
+	return list(combinations(num_entities, 2))

@@ -1,12 +1,11 @@
 
-from itertools import combinations
-from utilities import get_vector,distance, rotation_vector_by, interpolate_line
+from utilities import get_vector,distance, rotation_vector_by, interpolate_line, generate_unique_pairs
 from hybrid import hybrid_algorithm
-from plotting import plot_trajectories, plot_pos_vels
+from plotting import plot_trajectories, plot_pos_vels, plot_short_distance
 import numpy as np
 import math
 #*threshold for actions and general dimensions
-MAX_ITER = 20
+MAX_ITER = 100
 #TODO: tune these values
 STEP_TIME = 0.05 #seconds
 INTER_POINTS = 50 #number of previous points to consider in a new position
@@ -15,30 +14,45 @@ INTER_POINTS = 50 #number of previous points to consider in a new position
 #
 MIN_VEL = 400
 MAX_VEL = 1000
-RADIUS_FORMATION = 200#mm
-DELTA_TOLERANCE = 5 #* a margin for the relative horizontal distance expected
-WIDTH_SPACE = 1000  #mm Horizontal dimension of space
-HEIGHT_SPACE = 1000  #mm Vertical dimension of space
-N_UAVS = 3 # Number of Drones/Agents in the process, MUST BE GREATER THAN 2
-BORDER_UAV = 30 # radius of the area around the drone where repulse components are activated (the danger zone)
+RADIUS_FORMATION = 100 #m
+CENTER_FORM = (500, 500)
+DELTA_TOLERANCE = 20 #* a margin for the relative horizontal distance expected
+WIDTH_SPACE = 1000  #m Horizontal dimension of space
+HEIGHT_SPACE = 1000  #m Vertical dimension of space
+N_UAVS = 4 # Number of Drones/Agents in the process, MUST BE GREATER THAN 2
+BORDER_UAV = 100 # radius of the area around the drone where repulse components are activated (the danger zone)
 #INITIAL POSITIONS ELEMENTS MUST MATCH THE N_UAVS
 #TODO: MAKE THE USER INPUT THE ENTRIES ?
-INITIAL_POSITIONS = np.array([
-	[150, 150],
-	[500, 400],
-	[500, 500]], dtype=float
-)
+# INITIAL_POSITIONS = np.array([
+# 	[150, 150],
+# 	[500, 400],
+# 	[500, 500]
+#  ,], dtype=float
+# )
+
+
 # INITIAL_POSITIONS = np.array([
 # 	[40, 200],
 # 	[900, 500],
 # 	[900, 300],
-# 	[7000, 100],
+# 	[700, 100],
 # 	[300, 150],
 # 	[150, 600]
 # ], dtype=float
 # )
+
+INITIAL_POSITIONS = np.array([
+	[900, 900],
+	[900, 600],
+	# [900, 300],
+	# [700, 100],
+	[500, 500],
+	[0, 0]
+], dtype=float
+)
 states_drones = {}
 final_formation = {}
+final_position = {}
 geometries = {
 	0: 'Circle',
 	1: 'Rectangle',
@@ -48,7 +62,7 @@ obstacles = {
 	1: {
 	'center': np.array([250, 250]),
 	'radius': 100, #radius to the further point of the obstacle
-	'geometry': 0
+	'geometry': 1
 	}
 }
 algorithms = ['potential']
@@ -62,17 +76,17 @@ def final_positions():
 	MIN_ANGLE = 360/ N_UAVS
 	MATRIX_ROT = rotation_vector_by(MIN_ANGLE)
 	#Homogeneous transformation matrix from the center of the formation to the base coordinate system
-	# HOM_TRANS = np.array([[1,0,0,center[0]],
-	#                     [0,1,0,center[1]],
-	#                     [0,0,1,0],
-	#                     [0,0,0,1]]
-	#                     )
+	HOM_TRANS = np.array([[1,0,0,CENTER_FORM[0]],
+					[0,1,0,CENTER_FORM[1]],
+					[0,0,1,0],
+					[0,0,0,1]]
+					)
 	vector_init = [RADIUS_FORMATION, 0] #initial vector in center of formation frame
 	#Rotate this vector for every i_uavs by the respective angle
 	for drone in range(0, N_UAVS):
 		rotated_vector = MATRIX_ROT @ vector_init
-		# final_position = HOM_TRANS @ [*rotated_vector,1]
-		# final_formation[drone] = final_position[:2]
+		obj_position = HOM_TRANS @ [*rotated_vector,1]
+		final_position[drone] = final_position[:2]
 		final_formation[drone] = rotated_vector
 		vector_init = final_formation[drone]
 
@@ -82,7 +96,7 @@ def delta_formations(curr_drone):
 	for next_drone, next_pos in final_formation.items():
 		if next_drone is curr_drone:
 			continue
-		delta_positions[next_drone] = get_vector(final_formation[curr_drone], next_pos)
+		delta_positions[next_drone] = np.array(get_vector(final_formation[curr_drone], next_pos))
 	return delta_positions
 
 def create_state_formation():
@@ -90,7 +104,7 @@ def create_state_formation():
 	drone = 0
 	final_positions()
 	while drone < N_UAVS:
-		#TODO: SET PROPER INITIAL
+		#*You can make set them randomly
 		# init_pos =  np.array((np.random.rand()* WIDTH_SPACE, np.random.rand()* HEIGHT_SPACE))
 		init_pos = INITIAL_POSITIONS[drone]
 		#*if the initial position is inside an obstacle, re-generate a new one
@@ -101,6 +115,9 @@ def create_state_formation():
 		states_drones[drone]['direction'] = np.array([0, 0]) #is the direction of velocity vector
 		states_drones[drone]['path'] = [init_pos]
 		states_drones[drone]['velocities'] = []
+		states_drones[drone]['short_dist'] = {}
+		for obs in obstacles.keys():
+			states_drones[drone]['short_dist'][obs] = []
 		#get the desired formation horizontally
 		states_drones[drone]['deltas'] = delta_formations(drone)
 		drone += 1
@@ -123,20 +140,18 @@ def check_in_obstacle(state):
 	tl = BORDER_UAV
 	x_pos, y_pos = state
 	# #outside of space
-	if x_pos < 0 or y_pos < 0:
-		#print(f'outside of space')
-		return True
-	if x_pos > WIDTH_SPACE or y_pos > HEIGHT_SPACE:
+	# if x_pos < 0 or y_pos < 0:
+	# 	#print(f'outside of space')
+	# 	return True
+	if np.abs(x_pos) > WIDTH_SPACE or np.abs(y_pos) > HEIGHT_SPACE:
 		#print(f'outside of space')
 		return True
 
 	for obs_info in obstacles.values():
-		#obstacle square
-		#in_obstacle_0 = (x_pos >= 1500 - tl) and (x_pos <= 1750 + tl) and (y_pos >= 1000 - tl) and (y_pos <= HEIGHT_SPACE)
-		# obstacle circle
+		#consider the raidus every obstacle has embedded to define it's inside or not
 		in_obstacle = np.power(x_pos - obs_info['center'][0], 2) + \
-            np.power(y_pos - obs_info['center'][1], 2) <= \
-            np.power(obs_info['radius'] + tl, 2)
+			np.power(y_pos - obs_info['center'][1], 2) <= \
+			np.power(obs_info['radius'] + tl, 2)
 		if in_obstacle:
 			return True
 	return False
@@ -150,18 +165,27 @@ def check_nearest_obstacle(pos):
 		if diff_distance < curr_distance:
 			nearest_obs = key
 			curr_distance = diff_distance
-	return nearest_obs
+	return nearest_obs, curr_distance
 
 def verify_end_formation():
 	flag_complete_formation = True
-	deltas_drone_0 = states_drones[0]['deltas']
-	drone_0_pos = states_drones[0]['position']
-	for drone in range(1,N_UAVS):
-		next_drone_pos = states_drones[drone]['position']
-		#get the vector between them and compare components with expected delta
-		current_delta = get_vector(drone_0_pos, next_drone_pos)
-		#Verify if the current distance x,y between drone 0 and drone i is equal to the expected delta
-		flag_complete_formation &= np.all(np.abs(get_vector(current_delta,deltas_drone_0[drone])) <= DELTA_TOLERANCE)
+	# deltas_drone_0 = states_drones[0]['deltas']
+	# drone_0_pos = states_drones[0]['position']
+	combinations_drones = generate_unique_pairs(N_UAVS)
+	print(combinations_drones)
+	for pair_drone in combinations_drones:
+		drone_A, drone_B = pair_drone
+		drone_A_pos = states_drones[drone_A]['position']
+		drone_B_pos = states_drones[drone_B]['position']
+		current_delta = np.abs(np.array(get_vector(drone_A_pos, drone_B_pos)))
+		ref_delta = states_drones[drone_A]['deltas'][drone_B]
+		flag_complete_formation &= np.all(np.abs(get_vector(current_delta, ref_delta)) <= DELTA_TOLERANCE)
+	# for drone in range(1,N_UAVS):
+	# 	next_drone_pos = states_drones[drone]['position']
+	# 	#get the vector between them and compare components with expected delta
+	# 	current_delta = np.abs(np.array(get_vector(drone_0_pos, next_drone_pos)))
+	# 	#Verify if the current distance x,y between drone 0 and drone i is equal to the expected delta
+	# 	flag_complete_formation &= np.all(np.abs(get_vector(current_delta,deltas_drone_0[drone])) <= DELTA_TOLERANCE)
 	if flag_complete_formation:
 		print(f"Drone {drone} has achieved all the desired formations.")
 		return True
@@ -177,8 +201,8 @@ def control_law(algorithm, uavs):
 		print(f'iterations: {iterations}',end="\r")
 		for curr_uav, drone_info in uavs.items():
 			#TODO: Maybe i need a function to detect the nearest obstacle
-			nearest_obs = check_nearest_obstacle(drone_info['position'])
-			new_vel_vector = algorithm(curr_uav, uavs, obstacles[nearest_obs], BORDER_UAV)
+			nearest_obs, short_dist = check_nearest_obstacle(drone_info['position'])
+			new_vel_vector = algorithm(curr_uav, uavs, obstacles[nearest_obs], short_dist, BORDER_UAV)
 			mag_new_vel_vector = np.linalg.norm(new_vel_vector)
 			print(f'mag vel is {mag_new_vel_vector}')
 			#Consider a saturation condition especially for cases where jamming might be present when reaching obstacle
@@ -196,6 +220,8 @@ def control_law(algorithm, uavs):
 			new_pos = drone_info['position'] + (new_vel_vector * STEP_TIME)
 			#check if new position and the path is in obstacle space
 			# if collision(drone_info['position'], new_pos, INTER_POINTS):
+			# 	#if point will exceed space dimensions short to half the path
+			# 	new_pos = drone_info['position'] + (new_vel_vector * STEP_TIME/2)
 			# 	continue
 			# if check_in_obstacle(new_pos):
 			# 	continue
@@ -203,14 +229,14 @@ def control_law(algorithm, uavs):
 			states_drones[curr_uav]['direction'] = new_vel_vector
 			states_drones[curr_uav]['path'].append(new_pos)
 			states_drones[curr_uav]['velocities'].append(new_vel_vector)
-			formation_completed = verify_end_formation()
-			if formation_completed:
-				print(f'formation took seconds to complete')
-				return True
+			states_drones[curr_uav]['short_dist'][nearest_obs].append(short_dist)
+		formation_completed = verify_end_formation()
+		if formation_completed:
+			print(f'formation took seconds to complete')
+			return True
 		iterations += 1
 
-def generate_unique_pairs(uavs):
-	return list(combinations(uavs, 2))
+
 
 def collision(node, new_node, inter_points):
 	"""
@@ -243,6 +269,8 @@ if __name__ == "__main__":
 	for drone in states_drones:
 		print(f"\nDrone {drone}: Position: {states_drones[drone]['position']},\
 		Direction: {states_drones[drone]['direction']}\n\
+		Deltas: {states_drones[drone]['deltas']}\
 		")
-	plot_trajectories(states_drones, obstacles, final_formation)
+	#plot_trajectories(states_drones, obstacles, (WIDTH_SPACE, HEIGHT_SPACE, BORDER_UAV))
+	plot_short_distance(states_drones, STEP_TIME, 1)
 	#plot_pos_vels(states_drones)
