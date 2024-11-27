@@ -1,11 +1,12 @@
 
 from utilities import get_vector,distance, rotation_vector_by, interpolate_line, generate_unique_pairs
 from hybrid import hybrid_algorithm
+from potential_field import pot_field
 from plotting import plot_trajectories, plot_pos_vels, plot_short_distance
 import numpy as np
 import math
 #*threshold for actions and general dimensions
-MAX_ITER = 100
+MAX_ITER = 200
 #TODO: tune these values
 STEP_TIME = 0.05 #seconds
 INTER_POINTS = 50 #number of previous points to consider in a new position
@@ -19,7 +20,7 @@ CENTER_FORM = (500, 500)
 DELTA_TOLERANCE = 20 #* a margin for the relative horizontal distance expected
 WIDTH_SPACE = 1000  #m Horizontal dimension of space
 HEIGHT_SPACE = 1000  #m Vertical dimension of space
-N_UAVS = 4 # Number of Drones/Agents in the process, MUST BE GREATER THAN 2
+N_UAVS = 3 # Number of Drones/Agents in the process, MUST BE GREATER THAN 2
 BORDER_UAV = 100 # radius of the area around the drone where repulse components are activated (the danger zone)
 #INITIAL POSITIONS ELEMENTS MUST MATCH THE N_UAVS
 #TODO: MAKE THE USER INPUT THE ENTRIES ?
@@ -27,9 +28,15 @@ BORDER_UAV = 100 # radius of the area around the drone where repulse components 
 # 	[150, 150],
 # 	[500, 400],
 # 	[500, 500]
-#  ,], dtype=float
+# ,], dtype=float
 # )
 
+INITIAL_POSITIONS = np.array([
+	[1000, 150],
+	[750, 250],
+	[-100, 250]
+,], dtype=float
+)
 
 # INITIAL_POSITIONS = np.array([
 # 	[40, 200],
@@ -41,15 +48,15 @@ BORDER_UAV = 100 # radius of the area around the drone where repulse components 
 # ], dtype=float
 # )
 
-INITIAL_POSITIONS = np.array([
-	[900, 900],
-	[900, 600],
-	# [900, 300],
-	# [700, 100],
-	[500, 500],
-	[0, 0]
-], dtype=float
-)
+# INITIAL_POSITIONS = np.array([
+# 	[900, 900],
+# 	[900, 600],
+# 	# [900, 300],
+# 	# [700, 100],
+# 	[500, 500],
+# 	[0, 0]
+# ], dtype=float
+# )
 states_drones = {}
 final_formation = {}
 final_position = {}
@@ -60,7 +67,7 @@ geometries = {
 }
 obstacles = {
 	1: {
-	'center': np.array([250, 250]),
+	'center': np.array([600, 250]),
 	'radius': 100, #radius to the further point of the obstacle
 	'geometry': 1
 	}
@@ -85,8 +92,9 @@ def final_positions():
 	#Rotate this vector for every i_uavs by the respective angle
 	for drone in range(0, N_UAVS):
 		rotated_vector = MATRIX_ROT @ vector_init
-		obj_position = HOM_TRANS @ [*rotated_vector,1]
-		final_position[drone] = final_position[:2]
+		print(f'rotated vector is {rotated_vector}')
+		obj_position = HOM_TRANS @ [*rotated_vector,0,1]
+		final_position[drone] = obj_position[:2]
 		final_formation[drone] = rotated_vector
 		vector_init = final_formation[drone]
 
@@ -265,12 +273,13 @@ def collision(node, new_node, inter_points):
 
 if __name__ == "__main__":
 	create_state_formation()
-	control_law(hybrid_algorithm, states_drones)
+	#control_law(hybrid_algorithm, states_drones)
+	control_law(pot_field, states_drones)
 	for drone in states_drones:
 		print(f"\nDrone {drone}: Position: {states_drones[drone]['position']},\
 		Direction: {states_drones[drone]['direction']}\n\
 		Deltas: {states_drones[drone]['deltas']}\
 		")
-	#plot_trajectories(states_drones, obstacles, (WIDTH_SPACE, HEIGHT_SPACE, BORDER_UAV))
-	plot_short_distance(states_drones, STEP_TIME, 1)
+	plot_trajectories(states_drones, obstacles, (WIDTH_SPACE, HEIGHT_SPACE, BORDER_UAV))
+	#plot_short_distance(states_drones, STEP_TIME, 1)
 	#plot_pos_vels(states_drones)

@@ -1,38 +1,33 @@
 import math
+import numpy as np
 from utilities import distance,get_vector
-KA= 14 #attractive gain coefficient
-KR = 500 #repulsive gain coefficient
-DO = 15 #limit distance of the potential field influence
-#DO_UAV #? consider a limit distance specific for drones?
-# def attractive_field(pos_uav, pos_goal):
-# 	return 1/2 * KA * (distance(pos_uav,pos_goal))**2
+KA= 5 #attractive gain coefficient
+KR = 1e12 #repulsive gain coefficient
 
-# def repulsive_field(pos_uav,obs):
-# 	dist_to_obstacle = distance(pos_uav,obs)
-# 	if dist_to_obstacle < DO and dist_to_obstacle > 0:
-# 		return 1/2 * KR * (DO - dist_to_obstacle)**2
-# 	return 0
+def gradient_formation(curr_uav, uavs):
+	vector_sum = np.zeros(2)
+	for drone in uavs:
+		if drone is curr_uav:
+			continue
+		#*this is q_j -q_i -delta_ij
+		vector_uavs = get_vector(uavs[drone]['position'],  uavs[curr_uav]['position'])
+		vector_uavs_delt = get_vector(vector_uavs, uavs[curr_uav]['deltas'][drone])
+		diff_vector = np.array(vector_uavs_delt)
+		vector_sum += diff_vector
+	formation_vector = KA * vector_sum
+	print(f'formation_vector is {formation_vector}')
+	return formation_vector
 
-def gradient_goal(pos_uav, pos_goal):
-	return KA*(get_vector(pos_goal,pos_uav))
-
-def gradient_obstacle(pos_uav,obs):
-	dist_to_obstacle = distance(pos_uav,obs)
-	if dist_to_obstacle < DO and dist_to_obstacle > 0:
-		return KR *((1/dist_to_obstacle)-(1/DO))*(1/dist_to_obstacle**3)(get_vector(pos_uav, obs))
-	return 0
+def gradient_obstacle(pos_uav, obs, shor_dist, total_DO):
+	return KR *((1/shor_dist)-(1/total_DO))*(1/shor_dist**3)*np.array((get_vector(pos_uav, obs)))
 
 #New position vector at the end
-def total_pot_field(pos_uav,pos_goal,obstacles, other_uavs):
-	rep_field = []
-	# Repulsive force from obstacles
-	for obs in obstacles:
-		rep_field.append(gradient_obstacle(pos_uav, obs))
-	# Repulsive force from other drones
-	for drone in other_uavs:
-		rep_field.append(gradient_obstacle(pos_uav, drone))
-	return gradient_goal(pos_uav, pos_goal) + sum(rep_field)
-
-def drone_control():
-#* new position = iteration of total_potential field until all pos_uav are equal to pos_goal
-	return
+def pot_field(curr_uav, uavs, obs, short_dist, border):
+	real_DO = border + obs['radius']
+	formation_attraction_force = gradient_formation(curr_uav, uavs)
+	print(f'attraction force formation is {formation_attraction_force}')
+	repulsive_obs_force = np.zeros(2)
+	if short_dist <= real_DO and short_dist > 0:
+		repulsive_obs_force = gradient_obstacle(uavs[curr_uav]['position'], obs['center'], short_dist, real_DO)
+	print(f'repulsive force obstacle is {repulsive_obs_force}')
+	return formation_attraction_force + repulsive_obs_force

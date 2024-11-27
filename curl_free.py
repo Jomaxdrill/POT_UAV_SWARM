@@ -1,5 +1,5 @@
 import numpy as np
-from potential_field import gradient_goal
+from potential_field import gradient_formation
 from utilities import distance,get_vector,get_angle
 KC = 20 #curl-free gain coefficient
 DO = 15 #limit distance of the potential field influence
@@ -18,3 +18,4 @@ def rot_matrix_field(vel_vector,pos_vector, obs_pos):
 	if angle_diff >= 0:
 		return np.array([[0, 1],[-1, 0]]) #clockwise direction
 	return np.array([[0, -1],[1, 0]]) #counter clockwise direction
+
