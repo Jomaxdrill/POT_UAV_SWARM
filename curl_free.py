@@ -1,7 +1,7 @@
 import numpy as np
 from utilities import distance,get_vector,get_angle
-KA = 2 # attractive formation gain coefficient
-KC = 2e10 #curl-free gain coefficient
+KA = 1.05 # attractive formation gain coefficient
+KC = 2e13#curl-free gain coefficient
 hor_vector = [1,0] #unitary vector horizon direction
 def curl_free_field_force(curr_uav,obs,shor_dist, total_DO):
 	return KC *((1/shor_dist)-(1/total_DO))*(1/shor_dist**3)*\
@@ -28,15 +28,14 @@ def gradient_formation(curr_uav, uavs):
 		diff_vector = np.array(vector_uavs_delt)
 		vector_sum += diff_vector
 	formation_vector = KA * vector_sum
-	print(f'formation_vector is {formation_vector}')
 	return formation_vector
 
 def curl_free_vel_field(curr_uav, uavs, obs, short_dist, border):
 	real_DO = border + obs['radius']
 	formation_attraction_force = gradient_formation(curr_uav, uavs)
-	print(f'attraction force formation is {formation_attraction_force}')
+	#print(f'attraction force formation is {formation_attraction_force}')
 	repulsive_obs_force = np.zeros(2)
 	if short_dist <= real_DO and short_dist > 0:
 		repulsive_obs_force = curl_free_field_force(uavs[curr_uav], obs, short_dist, real_DO)
-		print(f'repulsive force obstacle is {repulsive_obs_force}')
+		#print(f'repulsive force obstacle is {repulsive_obs_force}')
 	return formation_attraction_force + repulsive_obs_force

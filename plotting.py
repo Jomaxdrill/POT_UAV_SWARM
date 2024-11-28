@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-def plot_trajectories(states, obstacles,constraints):
+def plot_trajectories(states, obstacles,constraints, method):
 	WIDTH, HEIGHT, BORDER = constraints
 	fig, ax = plt.subplots()
 	# Plot obstacles
@@ -12,8 +12,8 @@ def plot_trajectories(states, obstacles,constraints):
 			edge = obs['radius']*(np.sqrt(2)/2)
 			edge_x = obs['center'][0] - edge
 			edge_y = obs['center'][1] - edge
-			square_obs = plt.Rectangle((edge_x, edge_y) ,2*edge , 2*edge, color='g', label=f'obstacle {idx}', fill= False,linewidth=2.5)
-			circle_obs = plt.Circle(obs['center'], obs['radius']+ BORDER, color='r', label=f'obstacle {idx}')
+			square_obs = plt.Rectangle((edge_x, edge_y) ,2*edge , 2*edge, color='g', label=f' obstacle {idx}', fill= False,linewidth=2.5)
+			circle_obs = plt.Circle(obs['center'], obs['radius']+ BORDER, color='r', label=f'danger zone obstacle {idx}')
 			ax.add_patch(circle_obs)
 			ax.add_patch(square_obs)
 	#Plot drone trajectories and set dynamically plot limits
@@ -41,7 +41,7 @@ def plot_trajectories(states, obstacles,constraints):
 		#plot start and final points
 		ax.plot(X_pos[0], Y_pos[0],'X-', color='black', markersize=5)
 		#ax.plot(X_pos[-1], Y_pos[-1],'*-')
-	print(f'limits are: {X_min};{X_max};{Y_min};{Y_max}')
+	#print(f'limits are: {X_min};{X_max};{Y_min};{Y_max}')
 	#plot final formation expected
 	points_formation = []
 	for drone_id in states:
@@ -52,20 +52,23 @@ def plot_trajectories(states, obstacles,constraints):
 	#create lines from these points
 	for idx in range(len(points_formation)-1):
 		formation_lines.append([points_formation[idx], points_formation[idx+1]])
-	print(f'lines are {np.shape(formation_lines)}')
 	formation_lines = np.reshape(formation_lines,(len(formation_lines)*2, 2))
+	#plot the formation lines
 	ax.plot(formation_lines[:,0],formation_lines[:,1],'<--', linewidth=5)
+    #plot a text about the start points
+	plt.figtext(0.5, 0.01, "Black dots are starting points", ha="center", fontsize=10)
 	ax.set_xlabel('x (m)')
 	ax.set_ylabel('y (m)')
-	# ax.set_xlim(X_min*1.10, X_max*1.10)
-	# ax.set_ylim(Y_min*1.10, Y_max*1.10)
+	ax.set_xlim(X_min*1.10, X_max*1.10)
+	ax.set_ylim(Y_min*1.10, Y_max*1.10)
 	# ax.set_xlim(-1000, 1000)
 	# ax.set_ylim(-1000, 1000)
-	ax.set_aspect( 1 )
-	ax.set_title('Drone Trajectories')
+	ax.set_aspect(1)
+	ax.set_title(f'Drone Trajectories for {method}')
 	ax.grid()
 	ax.legend()
 	plt.show()
+#Plots the velocitiy vector field
 def plot_pos_vels(states):
 	fig, ax = plt.subplots()
 	for drone_id in states:
@@ -73,10 +76,8 @@ def plot_pos_vels(states):
 		vels = np.array(states[drone_id]['velocities'])
 		X_pos = path[:,0]
 		Y_pos = path[:,1]
-		# vel_X = vels[:,0]
-		# vel_Y = vels[:,1]
-		vel_X = np.ones(len(X_pos), dtype=float)
-		vel_Y = np.ones(len(Y_pos), dtype=float)
+		vel_X = vels[:,0]
+		vel_Y = vels[:,1]
 		ax.plot(X_pos, Y_pos, 'o-', label=f'Drone {drone_id}')
 		ax.plot(X_pos, Y_pos, 'o-', label='Drone Position')
 		ax.quiver(X_pos[:-1], Y_pos[:-1], vel_X[:-1], vel_Y[:-1], color='yellow',label=f'Drone Velocities {drone_id}')
@@ -87,7 +88,7 @@ def plot_pos_vels(states):
 	ax.legend()
 	plt.show()
 
-def plot_short_distance(states, step, obstacle):
+def plot_short_distance(states, step, obstacle, method):
 	_, ax = plt.subplots()
 	for drone in states.keys():
 		short_dist_drone_obs = states[drone]['short_dist'][obstacle]
@@ -97,7 +98,27 @@ def plot_short_distance(states, step, obstacle):
 		ax.plot(time_range, short_dist_drone_obs, label=f'Drone {drone}')
 	ax.set_xlabel('Time [s]')
 	ax.set_ylabel('Distances [m]')
-	ax.set_title(f'Distances from each of the drones to the obstacle {obstacle}')
+	ax.set_title(f'Distances from each of the drones to the obstacle {obstacle} for {method}')
 	ax.grid()
 	ax.legend()
+	plt.show()
+
+def plot_positions_vs_time(states, step, method):
+	fig, axes = plt.subplots(2)
+	for drone_id in states:
+		path = np.array(states[drone_id]['path'])
+		X_pos = path[:,0]
+		Y_pos = path[:,1]
+		num_steps = len(states[drone_id]['path'])
+		final_time = step * num_steps
+		time_range = np.linspace(0, final_time,endpoint=False, num=num_steps)
+		axes[0].plot(time_range, X_pos, '-', label=f'Drone {drone_id}')
+		axes[1].plot(time_range,Y_pos,'-', label=f'Drone {drone_id}')
+	for idx in range(0,2):
+		coord = 'X' if idx ==0 else 'Y'
+		axes[idx].set_title(f'Distance {coord} over time for drone formation {method}')
+		axes[idx].set_ylabel(f'{coord} [m]')
+		axes[idx].set_xlabel('Time [s]')
+		axes[idx].grid()
+		axes[idx].legend()
 	plt.show()
