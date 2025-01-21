@@ -13,13 +13,10 @@ python 3.11.7 or 3.8
 (pip installer used)
 
 ## LIBRARIES
-from utilities import get_vector,distance, rotation_vector_by, interpolate_line, generate_unique_pairs
-from hybrid import hybrid_algorithm
-from potential_field import pot_field
-from curl_free import curl_free_vel_field
-from plotting import plot_trajectories, plot_pos_vels, plot_short_distance
+import math
 import numpy as np
-
+from itertools import combinations
+import matplotlib.pyplot as plt
 
 ## GENERAL SETUP
 -The general structure of the folder is the following
@@ -28,7 +25,7 @@ POT_UAV_SWARM/
 ├── curl_free.py       # control algorithm for potential field method using curl-free vector field for fixed obstacles
 ├── drone_swarm_tsting.ipynb # Testing functions and debugging
 ├── drone_swarm.py     # Main file of the simulation, here you can set initial positions, number of drones,etc..
-├── hybrid.py          # main control algorithm a combination of the standard potential field and the curl-free vector field.
+├── hybrid.py          #control algorithm as a combination of the standard potential field and the curl-free vector field.
 ├── LICENSE            # MIT LICENSE
 ├── plotting.py        # Function using matplotlib to graph different results and information
 ├── potential_field.py # control algorithm using the standard potential field alogrithm for fixed obstacles

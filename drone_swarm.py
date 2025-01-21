@@ -171,7 +171,7 @@ def verify_end_formation():
 		ref_delta = states_drones[drone_A]['deltas'][drone_B]
 		flag_complete_formation &= np.all(np.abs(get_vector(current_delta, ref_delta)) <= DELTA_TOLERANCE)
 	if flag_complete_formation:
-		print(f"Drone {drone} has achieved all the desired formations.")
+		print(f"Drone  has achieved all the desired formations.")
 		return True
 	return False
 

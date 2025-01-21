@@ -33,12 +33,12 @@ def gradient_formation(curr_uav, uavs):
 	for drone in uavs:
 		if drone is curr_uav:
 			continue
-		#*this is q_j -q_i -delta_ij
-		vector_uavs = get_vector(uavs[drone]['position'],  uavs[curr_uav]['position'])
-		vector_uavs_delt = get_vector(vector_uavs, uavs[curr_uav]['deltas'][drone])
+		#*this is -kf(q_j -q_i) + delta_ij
+		vector_uavs = - KF * np.array(get_vector(uavs[drone]['position'],  uavs[curr_uav]['position']))
+		vector_uavs_delt = vector_uavs + uavs[curr_uav]['deltas'][drone]
 		diff_vector = np.array(vector_uavs_delt)
 		vector_sum += diff_vector
-	formation_vector = KF * vector_sum
+	formation_vector = vector_sum
 	# print(f'formation_vector is {formation_vector}')
 	return formation_vector
 
