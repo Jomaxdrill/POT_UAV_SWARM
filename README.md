@@ -1,22 +1,21 @@
 # Project 1 Control fo Robotic Systems
-link of article : https://ieeexplore.ieee.org/document/10272747
-github: https://github.com/Jomaxdrill/POT_UAV_SWARM
+- link of article : https://ieeexplore.ieee.org/document/10272747
 ## AUTHORS OF IMPLEMENTATION
-jcrespo@umd.edu
-rhamsaa@umd.edu
+- jcrespo@umd.edu
+- rhamsaa@umd.edu
 
 # AUTHORS OF THE ARTICLE
 Tagir Muslimov, Rustem Munasypov, Evgeny Kozlov
 
 ## DEPENDENCIES and PACKAGES
-python 3.11.7 or 3.8
+- python 3.11.7 or 3.8
 (pip installer used)
 
 ## LIBRARIES
-import math
-import numpy as np
-from itertools import combinations
-import matplotlib.pyplot as plt
+- import math
+- import numpy as np
+- from itertools import combinations
+- import matplotlib.pyplot as plt
 
 ## GENERAL SETUP
 -The general structure of the folder is the following
